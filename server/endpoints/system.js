@@ -1024,11 +1024,13 @@ function systemEndpoints(app) {
     async (request, response) => {
       try {
         const { offset = 0, limit = 20 } = reqBody(request);
+        const user = await userFromSession(request, response);
         const chats = await WorkspaceChats.whereWithData(
           {},
           limit,
           offset * limit,
-          { id: "desc" }
+          { id: "desc" },
+          user
         );
         const totalChats = await WorkspaceChats.count();
         const hasPages = totalChats > (offset + 1) * limit;

@@ -6,6 +6,7 @@ const { ROLES } = require("../utils/middleware/multiUserProtected");
 const { v4: uuidv4 } = require("uuid");
 const { User } = require("./user");
 const { PromptHistory } = require("./promptHistory");
+const { Roles } = require("@zilliz/milvus2-sdk-node");
 
 function isNullOrNaN(value) {
   if (value === null) return true;
@@ -338,7 +339,7 @@ const Workspace = {
     limit = null,
     orderBy = null
   ) {
-    if ([ROLES.admin, ROLES.manager].includes(user.role))
+    if ([ROLES.admin].includes(user.role))
       return await this.where(clause, limit, orderBy);
 
     try {
@@ -361,16 +362,27 @@ const Workspace = {
     }
   },
 
-  whereWithUsers: async function (clause = {}, limit = null, orderBy = null) {
+  whereWithUsers: async function (clause = {}, limit = null, orderBy = null, user=null) {
     try {
       const workspaces = await this.where(clause, limit, orderBy);
+      const filteredWorkspaces = [];
       for (const workspace of workspaces) {
         const userIds = (
-          await WorkspaceUser.where({ workspace_id: Number(workspace.id) })
-        ).map((rel) => rel.user_id);
+            await WorkspaceUser.where({ workspace_id: Number(workspace.id) })
+          ).map((rel) => rel.user_id);
         workspace.userIds = userIds;
+
+        if(user.role===ROLES.manager){
+          const workspaceUser = await WorkspaceUser.get({workspace_id: workspace.id, user_id: user.id});
+          if(workspaceUser){
+            filteredWorkspaces.push(workspace);
+          }
+        }else if(user.role===ROLES.admin){
+          filteredWorkspaces.push(workspace);
+        }
+
       }
-      return workspaces;
+      return filteredWorkspaces;
     } catch (error) {
       console.error(error.message);
       return [];

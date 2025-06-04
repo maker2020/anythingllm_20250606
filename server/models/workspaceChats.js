@@ -1,4 +1,6 @@
+const { user } = require("elevenlabs/api");
 const prisma = require("../utils/prisma");
+const { ROLES } = require("../utils/middleware/multiUserProtected");
 
 const WorkspaceChats = {
   new: async function ({
@@ -236,27 +238,44 @@ const WorkspaceChats = {
     clause = {},
     limit = null,
     offset = null,
-    orderBy = null
+    orderBy = null,
+    currentUser=null,
   ) {
     const { Workspace } = require("./workspace");
     const { User } = require("./user");
 
+    const { WorkspaceUser } = require("./workspaceUsers");
+
     try {
       const results = await this.where(clause, limit, orderBy, offset);
+      const filteredResults=[];
 
       for (const res of results) {
         const workspace = await Workspace.get({ id: res.workspaceId });
+        
         res.workspace = workspace
-          ? { name: workspace.name, slug: workspace.slug }
-          : { name: "deleted workspace", slug: null };
+            ? { name: workspace.name, slug: workspace.slug }
+            : { name: "deleted workspace", slug: null };
 
         const user = res.user_id ? await User.get({ id: res.user_id }) : null;
         res.user = user
           ? { username: user.username }
           : { username: res.api_session_id !== null ? "API" : "unknown user" };
+
+        if(currentUser.role===ROLES.manager){
+          const workspaceUser = await WorkspaceUser.get({
+            workspace_id: res.workspaceId,
+            user_id: currentUser.id
+          });
+          if(workspaceUser){
+            filteredResults.push(res);
+          }
+        }else{
+          filteredResults.push(res);
+        }
       }
 
-      return results;
+      return filteredResults;
     } catch (error) {
       console.error(error.message);
       return [];
