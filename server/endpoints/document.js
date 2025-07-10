@@ -1,6 +1,7 @@
 const { Document } = require("../models/documents");
+const { FileSystem } = require("../models/filesystem");
 const { normalizePath, documentsPath, isWithin } = require("../utils/files");
-const { reqBody } = require("../utils/http");
+const { reqBody, userFromSession } = require("../utils/http");
 const {
   flexUserRoleValid,
   ROLES,
@@ -29,7 +30,20 @@ function documentEndpoints(app) {
           return;
         }
 
+        const user=await userFromSession(request,response);
+        const result=await FileSystem.create({
+          createdby_userid: user.id,
+          filename: name,
+          filepath: storagePath,
+          is_directory: 1,
+          parent_id: 0
+        });
+        if(!result){
+          throw new Error("Failed to create folder in database.");
+        }
+
         fs.mkdirSync(storagePath, { recursive: true });
+
         response.status(200).json({ success: true, message: null });
       } catch (e) {
         console.error(e);

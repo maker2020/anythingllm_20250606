@@ -16,6 +16,7 @@ const { handleAssetUpload, handlePfpUpload } = require("../utils/files/multer");
 const { v4 } = require("uuid");
 const { SystemSettings } = require("../models/systemSettings");
 const { User } = require("../models/user");
+const { FileSystem } = require("../models/filesystem");
 const { validatedRequest } = require("../utils/middleware/validatedRequest");
 const fs = require("fs");
 const path = require("path");
@@ -431,6 +432,19 @@ function systemEndpoints(app) {
     async (_, response) => {
       try {
         const localFiles = await viewLocalFiles();
+        const user=await userFromSession(_, response);
+
+        const userFiles=await FileSystem.findByUserId(user.id);
+        const userFolders = new Set(userFiles.filter(file=>file.is_directory===1).map(f => f.filename));
+        userFolders.add("custom-documents"); // leave a special folder.
+
+        // only keep user own files & folders
+        if(user.role!==ROLES.admin){
+          localFiles.items = localFiles.items.filter(item => {
+            return userFolders.has(item.name);
+          });
+        }
+       
         response.status(200).json({ localFiles });
       } catch (e) {
         console.error(e.message, e);

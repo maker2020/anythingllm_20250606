@@ -11,6 +11,7 @@ const { Workspace } = require("../models/workspace");
 const { Document } = require("../models/documents");
 const { DocumentVectors } = require("../models/vectors");
 const { WorkspaceChats } = require("../models/workspaceChats");
+const { FileSystem } = require("../models/filesystem");
 const { getVectorDbClass } = require("../utils/helpers");
 const { handleFileUpload, handlePfpUpload } = require("../utils/files/multer");
 const { validatedRequest } = require("../utils/middleware/validatedRequest");
@@ -122,6 +123,18 @@ function workspaceEndpoints(app) {
         const Collector = new CollectorApi();
         const { originalname } = request.file;
         const processingOnline = await Collector.online();
+
+        const user = await userFromSession(request, response);
+        const result=await FileSystem.create({
+          createdby_userid: user.id,
+          filename: originalname,
+          filepath: "system",
+          is_directory: 0,
+          parent_id: 0
+        });
+        if(!result){
+          throw new Error("Failed to create file in database.");
+        }
 
         if (!processingOnline) {
           response

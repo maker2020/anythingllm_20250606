@@ -355,3 +355,12 @@ model prompt_history {
 
   @@index([workspaceId])
 }
+
+model filesystem {
+  id                  Int    @id @default(autoincrement())
+  createdby_userid    Int
+  filename            String
+  filepath            String
+  is_directory        Int
+  parent_id           Int  // No implement
+}

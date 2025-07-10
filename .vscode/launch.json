@@ -25,9 +25,9 @@
       "name": "Server debug",
       "request": "launch",
       "cwd": "${workspaceFolder}/server",
-      "env": {
-        "NODE_ENV": "development"
-      },
+      // "env": {
+      //   "NODE_ENV": "development"
+      // },
       "runtimeArgs": [
         "index.js"
       ],
