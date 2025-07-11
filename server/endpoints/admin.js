@@ -8,6 +8,13 @@ const { User } = require("../models/user");
 const { DocumentVectors } = require("../models/vectors");
 const { Workspace } = require("../models/workspace");
 const { WorkspaceChats } = require("../models/workspaceChats");
+const { Folder } = require("../models/folder");
+const { FolderUser } = require("../models/folder_users");
+const { purgeDocument, purgeFolder } = require("../utils/files/purgeDocument");
+const { viewLocalFiles, normalizePath, isWithin, documentsPath } = require("../utils/files");
+const fs = require("fs");
+const path = require("path");
+
 const {
   getVectorDbClass,
   getEmbeddingEngineSelection,
@@ -268,6 +275,112 @@ function adminEndpoints(app) {
           user.id
         );
         response.status(200).json({ workspace, error });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/folders/new",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { name } = reqBody(request);
+        const user=await userFromSession(request,response);
+        const newName = `${name} (${user.username})`;
+        const storagePath = path.join(documentsPath, normalizePath(newName));
+        if (!isWithin(path.resolve(documentsPath), path.resolve(storagePath)))
+          throw new Error("Invalid folder name.");
+
+        if (fs.existsSync(storagePath)) {
+          response.status(500).json({
+            success: false,
+            message: "Folder by that name already exists",
+          });
+          return;
+        }
+
+        const { folder, message: error } = await Folder.new(newName, user.id);
+
+        fs.mkdirSync(storagePath, { recursive: true });
+
+        response.status(200).json({ folder, error });
+      } catch (e) {
+        console.error(e);
+        response.status(500).json({
+          success: false,
+          message: `Failed to create folder: ${e.message} `,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/admin/folders",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (_request, response) => {
+      try {
+        const user=await userFromSession(_request, response);
+        const folders = await Folder.whereWithUsers(
+          {},
+          null,
+          null,
+          user
+        );
+        response.status(200).json({ folders });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.delete(
+    "/admin/folders/:id",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { id } = request.params;
+
+        const folder=await Folder.findByFolderId(Number(id));
+
+        // remove folder documents first
+        const localFolders=(await viewLocalFiles()).items;
+        const matchedFolder = localFolders.filter(localFolder=>localFolder.name===folder.folder_name);
+        const toDeleteFileNames=[];
+        matchedFolder.forEach(item=>{
+          const localFilesMatchedFolder=item.items;
+          localFilesMatchedFolder.forEach(foundItem=>{
+            toDeleteFileNames.push(`${folder.folder_name}/${foundItem.name}`);
+          })
+        });
+        for await (const name of toDeleteFileNames) await purgeDocument(name);
+
+        await purgeFolder(folder.folder_name);
+        await Folder.remove(Number(id));
+        await FolderUser.removeManyByFolderID(Number(id));
+        response.status(200).json({ success: true, error: null });
+      } catch (e) {
+        console.error(e.message, e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/folders/:folderId/update-users",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { folderId } = request.params;
+        const { userIds } = reqBody(request);
+        const { success, error } = await Folder.updateUsers(
+          folderId,
+          userIds
+        );
+        response.status(200).json({ success, error });
       } catch (e) {
         console.error(e);
         response.sendStatus(500).end();

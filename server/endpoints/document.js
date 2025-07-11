@@ -1,5 +1,5 @@
 const { Document } = require("../models/documents");
-const { FileSystem } = require("../models/filesystem");
+const { Folder } = require("../models/folder");
 const { normalizePath, documentsPath, isWithin } = require("../utils/files");
 const { reqBody, userFromSession } = require("../utils/http");
 const {
@@ -18,7 +18,9 @@ function documentEndpoints(app) {
     async (request, response) => {
       try {
         const { name } = reqBody(request);
-        const storagePath = path.join(documentsPath, normalizePath(name));
+        const user = await userFromSession(request, response);
+        const newName = `${name} (${user.username})`;
+        const storagePath = path.join(documentsPath, normalizePath(newName));
         if (!isWithin(path.resolve(documentsPath), path.resolve(storagePath)))
           throw new Error("Invalid folder name.");
 
@@ -30,21 +32,11 @@ function documentEndpoints(app) {
           return;
         }
 
-        const user=await userFromSession(request,response);
-        const result=await FileSystem.create({
-          createdby_userid: user.id,
-          filename: name,
-          filepath: storagePath,
-          is_directory: 1,
-          parent_id: 0
-        });
-        if(!result){
-          throw new Error("Failed to create folder in database.");
-        }
+        const { folder, message: error } = await Folder.new(newName, user.id);
 
         fs.mkdirSync(storagePath, { recursive: true });
 
-        response.status(200).json({ success: true, message: null });
+        response.status(200).json({ success: true, message: null, folder_id: folder.id, folder_name: newName });
       } catch (e) {
         console.error(e);
         response.status(500).json({

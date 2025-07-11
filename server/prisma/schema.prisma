@@ -356,11 +356,18 @@ model prompt_history {
   @@index([workspaceId])
 }
 
-model filesystem {
-  id                  Int    @id @default(autoincrement())
+model folder {
+  id                  Int        @id @default(autoincrement())
   createdby_userid    Int
-  filename            String
-  filepath            String
-  is_directory        Int
-  parent_id           Int  // No implement
+  folder_name         String   
+  createdAt           DateTime   @default(now())
+  lastUpdatedAt       DateTime   @default(now())
+}
+
+model folder_users {
+  id                  Int        @id @default(autoincrement())
+  user_id             Int
+  folder_id           Int
+  createdAt           DateTime   @default(now())
+  lastUpdatedAt       DateTime   @default(now())
 }

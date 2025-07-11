@@ -207,11 +207,11 @@ const System = {
         return false;
       });
   },
-  deleteFolder: async (name) => {
+  deleteFolder: async (id) => {
     return await fetch(`${API_BASE}/system/remove-folder`, {
       method: "DELETE",
       headers: baseHeaders(),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ id }),
     })
       .then((res) => res.ok)
       .catch((e) => {

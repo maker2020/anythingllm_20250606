@@ -75,7 +75,7 @@ function Directory({
         }
 
         if (isSelected(folder.id, folder)) {
-          foldersToRemove.push(folder.name);
+          foldersToRemove.push(folder.id);
         }
       }
 
@@ -87,8 +87,8 @@ function Directory({
         })
       );
       await System.deleteDocuments(toRemove);
-      for (const folderName of foldersToRemove) {
-        await System.deleteFolder(folderName);
+      for (const id of foldersToRemove) {
+        await System.deleteFolder(id);
       }
 
       await fetchKeys(true);

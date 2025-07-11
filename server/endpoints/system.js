@@ -16,7 +16,8 @@ const { handleAssetUpload, handlePfpUpload } = require("../utils/files/multer");
 const { v4 } = require("uuid");
 const { SystemSettings } = require("../models/systemSettings");
 const { User } = require("../models/user");
-const { FileSystem } = require("../models/filesystem");
+const { Folder } = require("../models/folder");
+const { FolderUser } = require("../models/folder_users");
 const { validatedRequest } = require("../utils/middleware/validatedRequest");
 const fs = require("fs");
 const path = require("path");
@@ -416,8 +417,11 @@ function systemEndpoints(app) {
     [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
     async (request, response) => {
       try {
-        const { name } = reqBody(request);
-        await purgeFolder(name);
+        const { id } = reqBody(request);
+        const folder=await Folder.findByFolderId(id);
+        await purgeFolder(folder.folder_name);
+        await Folder.remove(id);
+        await FolderUser.removeManyByFolderID(id);
         response.sendStatus(200).end();
       } catch (e) {
         console.error(e.message, e);
@@ -434,16 +438,18 @@ function systemEndpoints(app) {
         const localFiles = await viewLocalFiles();
         const user=await userFromSession(_, response);
 
-        const userFiles=await FileSystem.findByUserId(user.id);
-        const userFolders = new Set(userFiles.filter(file=>file.is_directory===1).map(f => f.filename));
-        userFolders.add("custom-documents"); // leave a special folder.
+        const userFoldersNameToId=new Map((await Folder.findByUserId(user.id)).map(item=>[item.folder_name, item.id]));
 
         // only keep user own files & folders
         if(user.role!==ROLES.admin){
           localFiles.items = localFiles.items.filter(item => {
-            return userFolders.has(item.name);
+            return userFoldersNameToId.has(item.name) || item.name === "custom-documents"; // leave a special folder.
           });
         }
+
+        localFiles.items.map(folder=>{
+          folder.id = userFoldersNameToId.get(folder.name);
+        });
        
         response.status(200).json({ localFiles });
       } catch (e) {

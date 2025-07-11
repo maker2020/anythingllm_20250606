@@ -1,32 +1,18 @@
 import React, { useState } from "react";
 import { X } from "@phosphor-icons/react";
-import Document from "@/models/document";
+import Admin from "@/models/admin";
+import { useTranslation } from "react-i18next";
 
-export default function NewFolderModal({ closeModal, files, setFiles }) {
+export default function NewFolderModal({ closeModal }) {
   const [error, setError] = useState(null);
-  const [folderName, setFolderName] = useState("");
-
+  const { t } = useTranslation();
   const handleCreate = async (e) => {
-    e.preventDefault();
     setError(null);
-    if (folderName.trim() !== "") {
-      const { success, folder_id, folder_name } = await Document.createFolder(folderName);
-      const newFolder = {
-        name: folder_name,
-        type: "folder",
-        items: [],
-        id: folder_id
-      };
-      if (success) {
-        setFiles({
-          ...files,
-          items: [...files.items, newFolder],
-        });
-        closeModal();
-      } else {
-        setError("Failed to create folder");
-      }
-    }
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const { folder, error } = await Admin.newFolder(form.get("name"));
+    if (!!folder) window.location.reload();
+    setError(error);
   };
 
   return (
@@ -35,7 +21,7 @@ export default function NewFolderModal({ closeModal, files, setFiles }) {
         <div className="relative p-6 border-b rounded-t border-theme-modal-border">
           <div className="w-full flex gap-x-2 items-center">
             <h3 className="text-xl font-semibold text-white overflow-hidden overflow-ellipsis whitespace-nowrap">
-              Create New Folder
+              Create new folder
             </h3>
           </div>
           <button
@@ -51,23 +37,26 @@ export default function NewFolderModal({ closeModal, files, setFiles }) {
             <div className="space-y-4">
               <div>
                 <label
-                  htmlFor="folderName"
+                  htmlFor="name"
                   className="block mb-2 text-sm font-medium text-white"
                 >
-                  Folder Name
+                  {t("common.folders-name")}
                 </label>
                 <input
-                  name="folderName"
+                  name="name"
                   type="text"
                   className="border-none bg-theme-settings-input-bg w-full text-white placeholder:text-theme-settings-input-placeholder text-sm rounded-lg focus:outline-primary-button active:outline-primary-button outline-none block w-full p-2.5"
-                  placeholder="Enter folder name"
+                  placeholder="My folder"
+                  minLength={4}
                   required={true}
                   autoComplete="off"
-                  value={folderName}
-                  onChange={(e) => setFolderName(e.target.value)}
                 />
               </div>
               {error && <p className="text-red-400 text-sm">Error: {error}</p>}
+              <p className="text-white text-opacity-60 text-xs md:text-sm">
+                After creating this workspace only admins will be able to see
+                it. You can add users after it has been created.
+              </p>
             </div>
             <div className="flex justify-between items-center mt-6 pt-6 border-t border-theme-modal-border">
               <button

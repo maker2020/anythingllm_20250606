@@ -285,6 +285,11 @@ const SidebarOptions = ({ user = null, t }) => (
               href: paths.settings.invites(),
               roles: ["admin", "manager"],
             },
+            {
+              btnText: t("settings.folders"),
+              href: paths.settings.folders(),
+              roles: ["admin", "manager"],
+            },
           ]}
         />
         <Option

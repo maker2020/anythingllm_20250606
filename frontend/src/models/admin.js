@@ -155,6 +155,58 @@ const Admin = {
       });
   },
 
+  // Folders Mgmt
+  folders: async () => {
+    return await fetch(`${API_BASE}/admin/folders`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.folders || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newFolder: async (name) => {
+    return await fetch(`${API_BASE}/admin/folders/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify({ name }),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { folder: null, error: e.message };
+      });
+  },
+  updateUsersInFolder: async (folderId, userIds = []) => {
+    return await fetch(
+      `${API_BASE}/admin/folders/${folderId}/update-users`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+        body: JSON.stringify({ userIds }),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  deleteFolder: async (folderId) => {
+    return await fetch(`${API_BASE}/admin/folders/${folderId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+
   // System Preferences
   // TODO: remove this in favor of systemPreferencesByFields
   // DEPRECATED: use systemPreferencesByFields instead

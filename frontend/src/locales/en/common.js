@@ -59,6 +59,7 @@ const TRANSLATIONS = {
   },
   common: {
     "workspaces-name": "Workspaces Name",
+    "folders-name": "Folders Name",
     error: "error",
     success: "success",
     user: "User",
@@ -80,6 +81,7 @@ const TRANSLATIONS = {
     users: "Users",
     workspaces: "Workspaces",
     "workspace-chats": "Workspace Chats",
+    "folders": "Folders",
     customization: "Customization",
     interface: "UI Preferences",
     branding: "Branding & Whitelabeling",
