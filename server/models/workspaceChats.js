@@ -239,7 +239,7 @@ const WorkspaceChats = {
     limit = null,
     offset = null,
     orderBy = null,
-    currentUser=null,
+    currentUser = null
   ) {
     const { Workspace } = require("./workspace");
     const { User } = require("./user");
@@ -247,32 +247,34 @@ const WorkspaceChats = {
     const { WorkspaceUser } = require("./workspaceUsers");
 
     try {
+      // manager can only see chats from their workspaces
+
+      let workspaceIds = null;
+
+      if (currentUser && currentUser.role === ROLES.manager) {
+        const workspaceUsers = await WorkspaceUser.where({
+          user_id: currentUser.id,
+        });
+        workspaceIds = workspaceUsers.map((wu) => wu.workspace_id);
+        if (workspaceIds.length === 0) return [];
+        clause.workspaceId = { in: workspaceIds };
+      }
+
       const results = await this.where(clause, limit, orderBy, offset);
-      const filteredResults=[];
+      const filteredResults = [];
 
       for (const res of results) {
         const workspace = await Workspace.get({ id: res.workspaceId });
-        
         res.workspace = workspace
-            ? { name: workspace.name, slug: workspace.slug }
-            : { name: "deleted workspace", slug: null };
+          ? { name: workspace.name, slug: workspace.slug }
+          : { name: "deleted workspace", slug: null };
 
         const user = res.user_id ? await User.get({ id: res.user_id }) : null;
         res.user = user
           ? { username: user.username }
           : { username: res.api_session_id !== null ? "API" : "unknown user" };
 
-        if(currentUser.role===ROLES.manager){
-          const workspaceUser = await WorkspaceUser.get({
-            workspace_id: res.workspaceId,
-            user_id: currentUser.id
-          });
-          if(workspaceUser){
-            filteredResults.push(res);
-          }
-        }else{
-          filteredResults.push(res);
-        }
+        filteredResults.push(res);
       }
 
       return filteredResults;

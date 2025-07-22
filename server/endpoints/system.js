@@ -36,6 +36,7 @@ const { WelcomeMessages } = require("../models/welcomeMessages");
 const { ApiKey } = require("../models/apiKeys");
 const { getCustomModels } = require("../utils/helpers/customModels");
 const { WorkspaceChats } = require("../models/workspaceChats");
+const { WorkspaceUser } = require("../models/workspaceUsers");
 const {
   flexUserRoleValid,
   ROLES,
@@ -1066,7 +1067,21 @@ function systemEndpoints(app) {
           { id: "desc" },
           user
         );
-        const totalChats = await WorkspaceChats.count();
+        // const totalChats = await WorkspaceChats.count();
+
+        let totalChats;
+        if (user.role === ROLES.manager) {
+          const workspaceUsers = await WorkspaceUser.where({ user_id: user.id });
+          const workspaceIds = workspaceUsers.map(wu => wu.workspace_id);
+          if (workspaceIds.length === 0) {
+            totalChats = 0;
+          } else {
+            totalChats = await WorkspaceChats.count({ workspaceId: { in: workspaceIds } });
+          }
+        } else {
+          totalChats = await WorkspaceChats.count();
+        }
+
         const hasPages = totalChats > (offset + 1) * limit;
 
         response.status(200).json({ chats: chats, hasPages, totalChats });
