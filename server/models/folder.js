@@ -45,7 +45,7 @@ const Folder = {
         folder.userIds = userIds;
 
         if(user.role===ROLES.manager){
-          const folderUser = await FolderUser.get({folder_id: folder.id, user_id: user.id});
+          const folderUser = await FolderUser.findOne({folder_id: folder.id, user_id: user.id});
           if(folderUser){
             filteredFolders.push(folder);
           }
