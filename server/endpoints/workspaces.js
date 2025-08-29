@@ -8,6 +8,7 @@ const {
 } = require("../utils/http");
 const { normalizePath, isWithin } = require("../utils/files");
 const { Workspace } = require("../models/workspace");
+const { Folder } = require("../models/folder");
 const { Document } = require("../models/documents");
 const { DocumentVectors } = require("../models/vectors");
 const { WorkspaceChats } = require("../models/workspaceChats");
@@ -122,6 +123,7 @@ function workspaceEndpoints(app) {
         const Collector = new CollectorApi();
         const { originalname } = request.file;
         const processingOnline = await Collector.online();
+        const currUser = await userFromSession(request, response);
 
         if (!processingOnline) {
           response
@@ -134,8 +136,14 @@ function workspaceEndpoints(app) {
           return;
         }
 
-        const { success, reason } =
+        const { success, reason, documents, folderName } =
           await Collector.processDocument(originalname);
+
+        // handle excel folder manage.
+        if(folderName){
+          const { folder, message: error } = await Folder.new(folderName, currUser.id);
+        }
+        
         if (!success) {
           response.status(500).json({ success: false, error: reason }).end();
           return;

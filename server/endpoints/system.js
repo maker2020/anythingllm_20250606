@@ -440,6 +440,7 @@ function systemEndpoints(app) {
         const user=await userFromSession(_, response);
 
         const userFoldersNameToId=new Map((await Folder.findByUserId(user.id)).map(item=>[item.folder_name, item.id]));
+        const full_UserFoldersNameToId=new Map((await Folder.findAll()).map(item=>[item.folder_name, item.id]));
 
         // only keep user own files & folders
         if(user.role!==ROLES.admin){
@@ -449,7 +450,7 @@ function systemEndpoints(app) {
         }
 
         localFiles.items.map(folder=>{
-          folder.id = userFoldersNameToId.get(folder.name);
+          folder.id = full_UserFoldersNameToId.get(folder.name);
         });
        
         response.status(200).json({ localFiles });

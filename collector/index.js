@@ -41,10 +41,11 @@ app.post(
         success,
         reason,
         documents = [],
+        folderName
       } = await processSingleFile(targetFilename, options);
       response
         .status(200)
-        .json({ filename: targetFilename, success, reason, documents });
+        .json({ filename: targetFilename, success, reason, documents, folderName });
     } catch (e) {
       console.error(e);
       response.status(200).json({
@@ -52,6 +53,7 @@ app.post(
         success: false,
         reason: "A processing error occurred.",
         documents: [],
+        folderName: null
       });
     }
     return;

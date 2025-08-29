@@ -107,7 +107,7 @@ async function asXlsx({ fullFilePath = "", filename = "" }) {
   console.log(
     `[SUCCESS]: ${filename} fully processed. Created ${documents.length} document(s).\n`
   );
-  return { success: true, reason: null, documents };
+  return { success: true, reason: null, documents, folderName };
 }
 
 module.exports = asXlsx;
